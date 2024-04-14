@@ -49,15 +49,15 @@ def check_answer(user_answer, user_level, index):
     ascii_user_answer = unidecode(user_answer)
     regex_pattern = re.compile(re.escape(ascii_user_answer), re.IGNORECASE)
     if regex_pattern.match(correct_answer):
-        print("Good job!")
+        print("oui")
         return 1
     else:
-        print(f"Incorrect. The correct answer was: {correct_answer}")
+        print("non")
         return 0
 
 #### Main algorythm
 # User presses "Let's get started" button
-user_level = set_level()
+"""user_level = set_level()
 
 while user_level:
     score = 0
@@ -69,7 +69,7 @@ while user_level:
 
     user_level = level_checkpoint(score, user_level)
 
-
+"""
 """
 This function can be used to follow your way to do this.
 

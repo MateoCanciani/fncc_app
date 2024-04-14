@@ -1,9 +1,13 @@
+import re
+from unidecode import unidecode
 import dash
 from dash import html, dcc
 import dash_mantine_components as dmc
 from dash_iconify import DashIconify
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
+
+from script import check_answer
 
 app = dash.Dash(external_stylesheets=[dbc.themes.LUX],
                 suppress_callback_exceptions=True)
@@ -22,6 +26,16 @@ questions = {
     "B1": ("3Q01", "Q02", "Q03", "Q04", "Q05"),
     "B2": ("4Q01", "Q02", "Q03", "Q04", "Q05")
 }
+
+answers = {"A1": ("A01", "A02", "A03", "A04", "A05"),
+           "A2": ("A01", "A02", "A03", "A04", "A05"),
+           "B1": ("A01", "A02", "A03", "A04", "A05"),
+           "B2": ("A01", "A02", "A03", "A04", "A05")}
+
+links = {"A1":"http://1.com/",
+        "A2": "http://2.com/",
+        "B1": "http://3.com/",
+        "B2": "http://4.com/"}
 
 welcome_container = dmc.Grid(
     [
@@ -62,7 +76,7 @@ level_selector_container = html.Div([
         )
     ])
 ], style={'margin': '200px 0px 0px 0px'})
-####Centrer le tout et travailler 
+
 
 questions_container = dmc.Grid(
     [
@@ -75,15 +89,32 @@ questions_container = dmc.Grid(
                 dmc.Text("",id="user-answer-text"), 
                 html.Div(
                     dmc.Button("Confirm answer",id='submit-answer-button',n_clicks=0,size="xl",leftIcon=DashIconify(icon="formkit:submit", width=20,),variant="gradient",gradient={"from": "red", "to": "orange"},),style={"textAlign": "center","padding": "0px,0px,0px,0px","marginTop": "80px"}),
-                dcc.Store(id="level",data=""),
-                dcc.Store(id="score",data=0)
+                dmc.Text("",id='test')
             ] 
         ,style={"textAlign": "center", "height": "100vh", "display": "flex", "flexDirection": "column", "justifyContent": "center"}),     
     ]#,
     #mb=100
 )
 
-results_container = dmc.Text("results")
+results_container = dmc.Grid(
+    [
+        dmc.Col(
+            [
+                dmc.Title('Nice job ! you finished the test ', className="animate__animated animate__fadeIn",order=1,align='center'),
+                #dmc.Text(f'We estimated that your level was {level}',align='center',size="xl")                
+            ],style={'padding': '40px 0px 0px 0px'}
+        ),
+        dmc.Col(
+            html.Div(dmc.Center(dmc.Image(src='assets/logo.png', height="350px", width="350px")), style={"marginLeft": "110px"}),style={"padding":"30px"}
+        ),
+        dmc.Col(
+            [
+            dmc.Text(children=["You can now click ",dcc.Link("here", href=links[level],id="link")," to register for the French class best adapted to your level!"],align="center",size="xl",weight=700),
+            dmc.Text("Thanks you for helping us to provide you the best.",align="center",size="xl",style={"padding":"20px 0px 0px 0px"})
+            ]
+        )        
+    ]
+)
 
 app.layout = html.Div(
     [
@@ -101,7 +132,8 @@ app.layout = html.Div(
             children=[dmc.Text("This test is not an official test. If you want to assess your French level in an official way, please get in touch with the FNCC",color="white",align="center")], #ADD STOP LOGOS SURROUNDING THE DISCLAIMER
             style={"backgroundColor": "#ee5b49"},
         ),
-        dcc.Store(id="chosen_level", data=(""))
+        dcc.Store(id="level", data=("")),
+        dcc.Store(id="score",data=0)
    ] 
 )
 
@@ -121,7 +153,7 @@ def update_first_page(n_clicks) :
 #Page 2 level selector + transition to page 3
 @app.callback(
     Output("container", "children", allow_duplicate=True),
-    Output("chosen_level", "data"),
+    Output("level", "data"),
     Input("page2_button", "n_clicks"),
     State("radiogroup-simple", "value"),
     prevent_initial_call=True)
@@ -139,14 +171,40 @@ def update_second_page(n_clicks, choice):
 @app.callback(
     Output('question-box',"children"),
     Input('submit-answer-button','n_clicks'),
-    State('chosen_level','data'),
-    #State('current_level','data'),
+    State('level','data')
     )
 
 
-def update_questions(n_clicks,chosen_level) : #ajouter current level
-    asked_question = questions[chosen_level][n_clicks]
+def update_questions(n_clicks,level) : #ajouter current level
+    asked_question = questions[level][n_clicks]
     return asked_question
+
+#Question checking + score adding
+@app.callback(
+    Output('score', 'data'),
+    Input('submit-answer-button', 'n_clicks'),
+    State('answer-box', 'value'),
+    State('level', 'data'),
+    State('score', 'data'))
+
+
+def check_answer(n_clicks, answer, level, score):
+    correct_answer = answers[level][n_clicks-1]
+    ascii_user_answer = unidecode(answer.strip())
+    if ascii_user_answer.lower() == correct_answer.lower():
+        score += 1
+        return score 
+    else:
+        return score
+
+# Affichage du score sur la page
+@app.callback(
+    Output('test', 'children'),
+    Input('score', 'data'))
+
+def display_score(score):
+    score = score
+    return f"Current score: {score}"
 
 if __name__ == "__main__":
     app.run_server(debug=True)
